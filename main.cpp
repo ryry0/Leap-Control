@@ -15,7 +15,10 @@
 //#include <xcb/xproto.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/xtest.h>
+#include <xcb/xcb_util.h>
 
+#define MOUSE_1 1
+#define MOUSE_2 2
 #define MOUSE_3 3
 #define MOUSE_SCROLL_UP 4
 #define MOUSE_SCROLL_DOWN 5
@@ -31,7 +34,8 @@ const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE"
 
 enum states_t {RUN, EXIT};
 
-void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame, xcb_connection_t *x_connection);
+void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame, xcb_connection_t *x_connection, xcb_window_t *x_root_window);
+xcb_screen_t *screen_of_display (xcb_connection_t *c, int screen);
 
 int main(int argc, char** argv) {
   //Leapmotion definitions:
@@ -42,6 +46,10 @@ int main(int argc, char** argv) {
 
   //xcb definitions:
   xcb_connection_t *x_connection;
+  xcb_screen_t     *x_screen;
+  int              screen_num;
+  xcb_window_t     x_root_window = {0};
+
   states_t program_state = RUN;
 
   //wait until the controller is connected
@@ -58,7 +66,10 @@ int main(int argc, char** argv) {
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
   //init the connection to the x server
-  x_connection = xcb_connect(NULL, NULL);
+  x_connection = xcb_connect(NULL, &screen_num);
+  x_screen = screen_of_display(x_connection, screen_num);
+  if (x_screen)
+    x_root_window = x_screen->root;
 
   //verify that xtest exists
   xcb_test_get_version_cookie_t cookie = xcb_test_get_version(x_connection, 2, 1);
@@ -85,7 +96,7 @@ int main(int argc, char** argv) {
     prev_frame = controller.frame(1);
 
     if (last_frame_id != frame.id()) //only process frame if it updated
-      processFrame(frame, prev_frame, x_connection);
+      processFrame(frame, prev_frame, x_connection, &x_root_window);
 
     last_frame_id = frame.id();
   } //end while
@@ -96,8 +107,38 @@ int main(int argc, char** argv) {
 }
 
 void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
-    xcb_connection_t *x_connection) {
+    xcb_connection_t *x_connection, xcb_window_t *x_root_window) {
   xcb_window_t none = { XCB_NONE };
+
+  static int mouse_button_pressed = false;
+  //handle mouse position and clicking.
+  Leap::HandList hands = frame.hands();
+  Leap::Hand right_hand = hands[0];
+  if (right_hand.isValid()) {
+    xcb_warp_pointer(x_connection, XCB_NONE, *x_root_window, 0, 0, 0, 0,
+        (right_hand.palmPosition().x+150)*(1600/(float)300),
+        1200 - (1200/(float)175)*(right_hand.palmPosition().y-75));
+    //hardcoded values must change!!!
+    //std::cout << right_hand.pinchStrength() << std::endl;
+    if (right_hand.pinchStrength() >= 0.97) {
+      xcb_test_fake_input(x_connection, XCB_BUTTON_PRESS,
+          MOUSE_1, 0, none, 0, 0, 0);
+      mouse_button_pressed = true;
+    }
+    else {
+      if(mouse_button_pressed) {
+        xcb_test_fake_input(x_connection, XCB_BUTTON_RELEASE,
+            MOUSE_1, 0, none, 0, 0, 0);
+        mouse_button_pressed = false;
+      }
+    }
+    xcb_flush(x_connection);
+  }
+
+  //std::cout << right_hand.palmPosition() << ", ";
+  //std::cout << (right_hand.palmPosition().x+150)* (1600/(float)300)<< ", " <<
+      //1200 - (1200/(float)175)*(right_hand.palmPosition().y-75) << std::endl;
+
   // Get gestures
   Leap::GestureList gestures = frame.gestures();
   for (int g = 0; g < gestures.count(); ++g) {
@@ -114,7 +155,7 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
           if (circle.pointable().direction().angleTo(circle.normal()) <= Leap::PI/2) {
             clockwiseness = "clockwise";
             if ((floor(circle.progress()) - floor(prev_circle.progress())) == 1) {
-              for (int i = 0; i < floor(floor(circle.radius())/5); i++){
+              for (int i = 0; i < floor(floor(circle.radius())/5); i++){ //different size different speed
                 xcb_test_fake_input(x_connection, XCB_BUTTON_PRESS,
                     MOUSE_SCROLL_DOWN, 0, none, 0, 0, 0);
                 xcb_test_fake_input(x_connection, XCB_BUTTON_RELEASE,
@@ -164,12 +205,12 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
               xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_CONTROL, 0, none, 0, 0, 0);
               xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
               if (swipe.direction().y > 0) {
-                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, UP, 0, none, 0, 0, 0);
-                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, UP, 0, none, 0, 0, 0);
-              }
-              else {
                 xcb_test_fake_input(x_connection, XCB_KEY_PRESS, DOWN, 0, none, 0, 0, 0);
                 xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, DOWN, 0, none, 0, 0, 0);
+              }
+              else {
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, UP, 0, none, 0, 0, 0);
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, UP, 0, none, 0, 0, 0);
               }
 
               xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
@@ -210,4 +251,15 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
         break;
     } //end switch
   } //end for
+}
+
+xcb_screen_t *screen_of_display (xcb_connection_t *c, int screen) {
+  xcb_screen_iterator_t iter;
+
+  iter = xcb_setup_roots_iterator (xcb_get_setup (c));
+  for (; iter.rem; --screen, xcb_screen_next (&iter))
+    if (screen == 0)
+      return iter.data;
+
+  return NULL;
 }
