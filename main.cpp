@@ -32,7 +32,9 @@
 #define KEY_T 0x1c
 #define UP 0x6f
 #define DOWN 0x74
-
+#define LEFT 0x71
+#define RIGHT 0x72
+#define BACKSPACE 0x16
 
 const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
 const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
@@ -117,29 +119,36 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
   xcb_window_t none = { XCB_NONE };
 
   static int mouse_button_pressed = false;
+
   //handle mouse position and clicking.
   Leap::HandList hands = frame.hands();
   Leap::Hand right_hand = hands[0];
   if (right_hand.isValid()) {
-    xcb_warp_pointer(x_connection, XCB_NONE, *x_root_window, 0, 0, 0, 0,
-        (right_hand.palmPosition().x+150)*(1600/(float)300),
-        1200 - (1200/(float)175)*(right_hand.palmPosition().y-75));
-    //hardcoded values must change!!!
-    //std::cout << right_hand.pinchStrength() << std::endl;
-    if (right_hand.pinchStrength() >= 0.97) {
-      xcb_test_fake_input(x_connection, XCB_BUTTON_PRESS,
-          MOUSE_1, 0, none, 0, 0, 0);
-      mouse_button_pressed = true;
-    }
-    else {
-      if(mouse_button_pressed) {
-        xcb_test_fake_input(x_connection, XCB_BUTTON_RELEASE,
+    //do not move or click if fist
+    if (right_hand.grabStrength() != 1) {
+      xcb_warp_pointer(x_connection, XCB_NONE, *x_root_window, 0, 0, 0, 0,
+          (right_hand.palmPosition().x+150)*(1600/(float)300),
+          1200 - (1200/(float)175)*(right_hand.palmPosition().y-75));
+
+      //hardcoded values must change!!!
+      //std::cout << right_hand.pinchStrength() << std::endl;
+      //
+      if (right_hand.pinchStrength() >= 0.97) {
+        xcb_test_fake_input(x_connection, XCB_BUTTON_PRESS,
             MOUSE_1, 0, none, 0, 0, 0);
-        mouse_button_pressed = false;
+        mouse_button_pressed = true;
       }
-    }
-    xcb_flush(x_connection);
-  }
+      else {
+        if(mouse_button_pressed) {
+          xcb_test_fake_input(x_connection, XCB_BUTTON_RELEASE,
+              MOUSE_1, 0, none, 0, 0, 0);
+          mouse_button_pressed = false;
+        }
+      }
+
+      xcb_flush(x_connection);
+    } //end if (right_hand.grabStrength
+  } //end if(right_hand.isValid
 
   //std::cout << right_hand.palmPosition() << ", ";
   //std::cout << (right_hand.palmPosition().x+150)* (1600/(float)300)<< ", " <<
@@ -260,18 +269,36 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
 
               } //end if(fabs
               else {
-                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
                 if (swipe.direction().x < 0) {
-                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, F1, 0, none, 0, 0, 0);
-                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, F1, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, LEFT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, LEFT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
                 }
                 else {
-                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, F4, 0, none, 0, 0, 0);
-                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, F4, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, RIGHT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, RIGHT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
                 }
-                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
               }
             } //end if (finger.type
+            else if (finger.type() == 4) { //pinky finger
+              if (fabs(swipe.direction().y) > fabs(swipe.direction().x)) {
+                if (swipe.direction().y < 0) {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, F4, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, F4, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
+                }
+                else {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, F1, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, F1, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
+                }
+              } //end if (fabs
+            } //end else if
           } //end if (gesture.state
 
           xcb_flush(x_connection);
