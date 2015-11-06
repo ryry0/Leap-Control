@@ -24,6 +24,12 @@
 #define MOUSE_SCROLL_DOWN 5
 #define L_CONTROL 0x25
 #define L_ALT 0x40
+#define F1 0x43
+#define F4 0x46
+#define L_SHIFT 0x32
+#define TAB 0x17
+#define KEY_W 0x19
+#define KEY_T 0x1c
 #define UP 0x6f
 #define DOWN 0x74
 
@@ -198,27 +204,77 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
       case Leap::Gesture::TYPE_SWIPE:
         {
           Leap::SwipeGesture swipe = gesture;
+          Leap::Finger finger = Leap::Finger(swipe.pointable()); //grab finger
 
           if (gesture.state() == 1) { //if the gesture is starting
-            //if it is in the y direction
-            if (fabs(swipe.direction().y) > fabs(swipe.direction().x)) {
-              xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_CONTROL, 0, none, 0, 0, 0);
-              xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
-              if (swipe.direction().y > 0) {
-                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, DOWN, 0, none, 0, 0, 0);
-                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, DOWN, 0, none, 0, 0, 0);
-              }
+            if (finger.type() == 1) { //index finger
+              //if it is in the y direction
+              if (fabs(swipe.direction().y) > fabs(swipe.direction().x)) {
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_CONTROL, 0, none, 0, 0, 0);
+                if (swipe.direction().y < 0) {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, KEY_W, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, KEY_W, 0, none, 0, 0, 0);
+                }
+                else {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_SHIFT, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, KEY_T, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, KEY_T, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_SHIFT, 0, none, 0, 0, 0);
+                }
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_CONTROL, 0, none, 0, 0, 0);
+              } //end if fabs
+
               else {
-                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, UP, 0, none, 0, 0, 0);
-                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, UP, 0, none, 0, 0, 0);
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_CONTROL, 0, none, 0, 0, 0);
+                if (swipe.direction().x < 0) { //moving left
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_SHIFT, 0, none, 0, 0, 0);
+                }
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, TAB, 0, none, 0, 0, 0);
+
+                if (swipe.direction().x < 0) {
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_SHIFT, 0, none, 0, 0, 0);
+                }
+
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, TAB, 0, none, 0, 0, 0);
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_CONTROL, 0, none, 0, 0, 0);
               }
 
-              xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
-              xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_CONTROL, 0, none, 0, 0, 0);
-              xcb_flush(x_connection);
-            }
-          }
+            } //end if (finger type
 
+            else if (finger.type() == 2) { //middle finger
+              //if it is in the y direction
+              if (fabs(swipe.direction().y) > fabs(swipe.direction().x)) {
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_CONTROL, 0, none, 0, 0, 0);
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
+                if (swipe.direction().y > 0) {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, DOWN, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, DOWN, 0, none, 0, 0, 0);
+                }
+                else {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, UP, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, UP, 0, none, 0, 0, 0);
+                }
+
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_CONTROL, 0, none, 0, 0, 0);
+
+              } //end if(fabs
+              else {
+                xcb_test_fake_input(x_connection, XCB_KEY_PRESS, L_ALT, 0, none, 0, 0, 0);
+                if (swipe.direction().x < 0) {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, F1, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, F1, 0, none, 0, 0, 0);
+                }
+                else {
+                  xcb_test_fake_input(x_connection, XCB_KEY_PRESS, F4, 0, none, 0, 0, 0);
+                  xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, F4, 0, none, 0, 0, 0);
+                }
+                xcb_test_fake_input(x_connection, XCB_KEY_RELEASE, L_ALT, 0, none, 0, 0, 0);
+              }
+            } //end if (finger.type
+          } //end if (gesture.state
+
+          xcb_flush(x_connection);
           std::cout << std::string(2, ' ')
             << "Swipe id: " << gesture.id()
             << ", state: " << stateNames[gesture.state()]
