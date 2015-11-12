@@ -5,8 +5,8 @@ A WIP program to allow me to control the GNOME desktop via the Leapmotion contro
 
 TODO:
 
-- Mouse pointer control via palm/fingertip position
-- Clicking by pinching/grabbing
+- ~~Mouse pointer control via palm/fingertip position~~
+- ~~Clicking by pinching/grabbing~~
 - Palm facing straight/ up triggers overview
 - Remappable keys via config file
 - ~~Switch desktops via single finger swipe~~
