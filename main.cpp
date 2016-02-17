@@ -146,7 +146,6 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
         }
       }
 
-      xcb_flush(x_connection);
     } //end if (right_hand.grabStrength
   } //end if(right_hand.isValid
 
@@ -176,7 +175,6 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
                 xcb_test_fake_input(x_connection, XCB_BUTTON_RELEASE,
                     MOUSE_SCROLL_DOWN, 0, none, 0, 0, 0);
               }
-              xcb_flush(x_connection);
             }
           } //end if (circle.pointable
           else {
@@ -188,7 +186,6 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
                 xcb_test_fake_input(x_connection, XCB_BUTTON_RELEASE,
                     MOUSE_SCROLL_UP, 0, none, 0, 0, 0);
               }
-              xcb_flush(x_connection);
             }
           } //end else
 
@@ -301,7 +298,6 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
             } //end else if
           } //end if (gesture.state
 
-          xcb_flush(x_connection);
           std::cout << std::string(2, ' ')
             << "Swipe id: " << gesture.id()
             << ", state: " << stateNames[gesture.state()]
@@ -334,6 +330,8 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
         break;
     } //end switch
   } //end for
+
+  xcb_flush(x_connection); //output the changes to the screen
 }
 
 xcb_screen_t *screen_of_display (xcb_connection_t *c, int screen) {
