@@ -84,6 +84,7 @@ int main(int argc, char** argv) {
 
   xcb_generic_error_t *x_error = NULL;
 
+  //print the xtest version
   xcb_test_get_version_reply_t *xtest_reply =
     xcb_test_get_version_reply ( x_connection, cookie, &x_error );
   if (xtest_reply) {
@@ -93,12 +94,14 @@ int main(int argc, char** argv) {
     free(xtest_reply);
   }
 
+  //if there was an error, exit
   if (x_error) {
     fprintf( stderr, "XTest version error: %d", (int)x_error->error_code );
     free(x_error);
     program_state = EXIT;
   }
 
+  //main loop
   while (program_state == RUN) {
     frame = controller.frame(); //get the current frame
     prev_frame = controller.frame(1);
@@ -132,7 +135,6 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
 
       //hardcoded values must change!!!
       //std::cout << right_hand.pinchStrength() << std::endl;
-      //
       if (right_hand.pinchStrength() >= 0.97) {
         xcb_test_fake_input(x_connection, XCB_BUTTON_PRESS,
             MOUSE_1, 0, none, 0, 0, 0);
@@ -158,6 +160,7 @@ void processFrame(Leap::Frame &frame, Leap::Frame &prev_frame,
   for (int g = 0; g < gestures.count(); ++g) {
     Leap::Gesture gesture = gestures[g];
 
+    //circle gestures scroll the screen
     switch (gesture.type()) {
       case Leap::Gesture::TYPE_CIRCLE:
         {
